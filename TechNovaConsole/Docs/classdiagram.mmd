@@ -1,0 +1,47 @@
+classDiagram
+	class Employee{
+		Guid UniqueId
+		string FullName
+		string Email
+		string Designation
+		string Department
+		EmploymentType EmploymentType
+		decimal CostRate
+		bool IsActive
+		IReadOnlyList<EmployeeSkill> Skills
+	}
+
+	class Project{
+		Guid Id
+		string Name
+		string ClientName
+		DateOnly StartDate
+		DateOnly? EndDate
+		ProjectStatus Status
+		IReadOnlyList<SkillRequirement> RequiredSkills
+	}
+
+	class Allocation{
+		Guid Id
+		Guid EmployeeId
+		Guid ProjectId
+		DateOnly StartDate
+		DateOnly? EndDate
+		decimal AllocationPercentage
+		bool IsActive
+	}
+
+	class Skill{
+		string Id
+		string Name
+	}
+
+	class SkillRequirement{
+		string SkillId
+		ProficiencyLevel MinimumProficiency
+	}
+
+	Employee "1" o-- "*" EmployeeSkill
+	Project "1" o-- "*" SkillRequirement
+	Allocation "*" o-- "1" Employee
+	Allocation "*" o-- "1" Project

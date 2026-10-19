@@ -1,0 +1,40 @@
+flowchart TB
+  subgraph Presentation
+	ConsoleApp[ConsoleApp]
+  end
+
+  subgraph Application
+	ES(EmployeeService)
+	PS(ProjectService)
+	AS(AllocationService)
+	MS(MatchingService)
+	RS(ReportService)
+  end
+
+  subgraph Domain
+	M(Employee, Project, Allocation, Skill)
+  end
+
+  subgraph Persistence
+	IRepos[IEmployeeRepository<br/>IProjectRepository<br/>IAllocationRepository]
+	JsonRepos[JsonEmployeeRepository<br/>JsonProjectRepository<br/>JsonAllocationRepository]
+  end
+
+  subgraph Infra
+	Notif[ConsoleNotificationService]
+  end
+
+  ConsoleApp --> ES
+  ConsoleApp --> PS
+  ConsoleApp --> AS
+  ConsoleApp --> MS
+  ConsoleApp --> RS
+
+  ES --> IRepos
+  PS --> IRepos
+  AS --> IRepos
+  MS --> IRepos
+  RS --> IRepos
+
+  IRepos --> JsonRepos
+  AS --> Notif

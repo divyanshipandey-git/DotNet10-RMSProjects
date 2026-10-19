@@ -1,0 +1,16 @@
+[
+  {
+    "Id": "19042bb1-c214-4cd8-8fbd-5dfe985185ba",
+    "Name": "Posting",
+    "ClientName": "DHL",
+    "StartDate": "2026-12-24",
+    "EndDate": "2027-12-24",
+    "Status": "planned",
+    "RequiredSkills": [
+      {
+        "SkillId": "Python",
+        "MinimumProficiency": "level5"
+      }
+    ]
+  }
+]

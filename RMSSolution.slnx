@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="RMSSolution/RMSSolution.csproj" />
+  <Project Path="TechNovaConsole.Tests/TechNovaConsole.Tests.csproj" />
+  <Project Path="TechNovaConsole/TechNovaConsole.csproj" />
+</Solution>
