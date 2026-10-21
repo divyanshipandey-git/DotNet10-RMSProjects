@@ -49,6 +49,23 @@ public sealed class ProjectService
     public Task<IReadOnlyList<Project>> ListAsync(CancellationToken cancellationToken = default)
         => _repository.GetAllAsync(cancellationToken);
 
+    public async Task<Result> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (id == Guid.Empty) return Result.Failure("Id must be provided.");
+        var existing = await _repository.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
+        if (existing is null) return Result.Failure("Project not found.");
+
+        try
+        {
+            await _repository.DeleteAsync(id, cancellationToken).ConfigureAwait(false);
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to delete project: {ex.Message}");
+        }
+    }
+
     public async Task<Result<Project>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         if (id == Guid.Empty) return Result<Project>.Failure("Id must be provided.");

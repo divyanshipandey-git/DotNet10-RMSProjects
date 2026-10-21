@@ -99,7 +99,7 @@ public sealed class JsonProjectRepository : IProjectRepository
         }
         catch (Exception ex)
         {
-            // Preserve the original file and initialize an empty collection to allow the app to start.
+            // Preserve the original file and fail initialization rather than silently discarding data.
             try
             {
                 var bak = _filePath + ".corrupt.bak";
@@ -107,16 +107,7 @@ public sealed class JsonProjectRepository : IProjectRepository
             }
             catch { /* best-effort backup */ }
 
-            try
-            {
-                var log = Path.Combine(Path.GetDirectoryName(_filePath)!, "projects.load.error.log");
-                File.AppendAllText(log, DateTime.UtcNow.ToString("o") + " - " + ex + Environment.NewLine);
-            }
-            catch { }
-
-            await SafeWriteAsync(_filePath, "[]", cancellationToken).ConfigureAwait(false);
-            _projects.Clear();
-            return;
+            throw new InvalidOperationException($"Failed to deserialize projects from '{_filePath}'.", ex);
         }
     }
 

@@ -124,4 +124,42 @@ public class AllocationServiceTests
         Assert.NotNull(stored);
         Assert.False(stored!.IsActive);
     }
+
+    [Fact]
+    public async Task Concurrent_allocations_cannot_exceed_capacity()
+    {
+        var empRepo = new InMemoryEmployeeRepository();
+        var projRepo = new InMemoryProjectRepository();
+        var allocRepo = new InMemoryAllocationRepository();
+        var employee = new Employee("Concurrent", "concurrent@example.com", "Dev", "Eng", EmploymentType.FullTime, 100m, true) { UniqueId = Guid.NewGuid() };
+        var project = new Project("Concurrent project", "Client", new DateOnly(2026, 1, 1), new DateOnly(2026, 1, 31), ProjectStatus.Active,
+            new[] { new SkillRequirement("C#", ProficiencyLevel.Level1) }) { Id = Guid.NewGuid() };
+        await empRepo.AddOrUpdateAsync(employee);
+        await projRepo.AddOrUpdateAsync(project);
+        var service = new AllocationService(allocRepo, empRepo, projRepo, new TechNovaConsole.Notifications.ConsoleNotificationService());
+
+        var first = new Allocation(employee.UniqueId, project.Id, project.StartDate, project.EndDate, 60m);
+        var second = new Allocation(employee.UniqueId, project.Id, project.StartDate, project.EndDate, 60m);
+        var results = await Task.WhenAll(service.CreateAllocationAsync(first), service.CreateAllocationAsync(second));
+
+        Assert.Single(results, result => result.IsSuccess);
+        Assert.Single(results, result => !result.IsSuccess);
+        Assert.Equal(60m, (await allocRepo.GetByEmployeeAsync(employee.UniqueId)).Sum(a => a.AllocationPercentage));
+    }
+
+    [Fact]
+    public async Task Delete_deactivates_employee_and_preserves_identity()
+    {
+        var repository = new InMemoryEmployeeRepository();
+        var employee = new Employee("Retained", "retained@example.com", "Dev", "Eng", EmploymentType.FullTime, 100m, true) { UniqueId = Guid.NewGuid() };
+        await repository.AddOrUpdateAsync(employee);
+        var service = new EmployeeService(repository);
+
+        var result = await service.DeleteAsync(employee.UniqueId);
+
+        Assert.True(result.IsSuccess);
+        var retained = await repository.GetByIdAsync(employee.UniqueId);
+        Assert.NotNull(retained);
+        Assert.False(retained!.IsActive);
+    }
 }

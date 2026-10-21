@@ -97,7 +97,9 @@ public class MatchingAndReportsTests
         Assert.True(dept.IsSuccess);
         var eng = dept.Value!.FirstOrDefault(d => d.Department == "Eng");
         Assert.NotNull(eng);
-        // utilisation should be > 0 because one employee partially allocated
-        Assert.True(eng!.UtilisationPercent >= 0m);
+        // One employee is allocated at 50% and three full-time employees provide 300% capacity.
+        Assert.Equal(16.67m, eng!.UtilisationPercent);
+        Assert.Equal(50m, eng.Allocated);
+        Assert.Equal(300m, eng.Capacity);
     }
 }

@@ -88,9 +88,17 @@ public sealed class JsonAllocationRepository : IAllocationRepository
     {
         if (!File.Exists(_filePath)) { await SafeWriteAsync(_filePath, "[]", cancellationToken).ConfigureAwait(false); return; }
         string json = await File.ReadAllTextAsync(_filePath, cancellationToken).ConfigureAwait(false);
-        var list = JsonSerializer.Deserialize<List<Allocation>>(json, _options);
-        if (list is null) return;
-        _allocations.Clear(); _allocations.AddRange(list);
+        try
+        {
+            var list = JsonSerializer.Deserialize<List<Allocation>>(json, _options);
+            if (list is null) return;
+            _allocations.Clear(); _allocations.AddRange(list);
+        }
+        catch (Exception ex)
+        {
+            try { File.Copy(_filePath, _filePath + ".corrupt.bak", overwrite: true); } catch { }
+            throw new InvalidOperationException($"Failed to deserialize allocations from '{_filePath}'.", ex);
+        }
     }
 
     private async Task SaveInternalAsync(CancellationToken cancellationToken)

@@ -266,7 +266,9 @@ public sealed class JsonEmployeeRepository : IEmployeeRepository
             var results = new List<Employee>();
             foreach (var el in doc.RootElement.EnumerateArray())
             {
-                string idStr = GetPropertyOrDefault(el, "id");
+                // Canonical records contain both the legacy integer Id and the domain UniqueId.
+                // Prefer UniqueId so a reload does not silently change the employee identity.
+                string? idStr = GetPropertyOrDefault(el, "uniqueId") ?? GetPropertyOrDefault(el, "id");
                 Guid uid = Guid.TryParse(idStr, out var g) ? g : Guid.NewGuid();
                 string fullName = GetPropertyOrDefault(el, "fullName") ?? GetPropertyOrDefault(el, "name") ?? "Unknown";
                 string email = GetPropertyOrDefault(el, "email") ?? GenerateEmailFromName(fullName);

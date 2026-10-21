@@ -209,7 +209,7 @@ public sealed class Project
         DateOnly startDate,
         DateOnly? endDate,
         ProjectStatus status,
-        IEnumerable<SkillRequirement>? requiredSkills = null)
+        IReadOnlyList<SkillRequirement>? requiredSkills = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Project name must be provided", nameof(name));

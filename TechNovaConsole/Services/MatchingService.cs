@@ -84,7 +84,7 @@ public sealed class MatchingService
                 var normId = req.SkillId?.Trim().ToLowerInvariant() ?? string.Empty;
                 if (empSkills.TryGetValue(normId, out var es) && (int)es.Proficiency >= (int)req.MinimumProficiency)
                 {
-                    matched.Add(new MatchedSkill(req.SkillId, es.Proficiency));
+                    matched.Add(new MatchedSkill(req.SkillId ?? string.Empty, es.Proficiency));
                 }
                 else
                 {

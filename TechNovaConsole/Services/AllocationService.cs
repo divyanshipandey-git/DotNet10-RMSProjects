@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using TechNovaConsole.Interfaces;
 using TechNovaConsole.Models;
 using TechNovaConsole.Utilities;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace TechNovaConsole.Services;
 
@@ -20,20 +22,24 @@ public sealed class AllocationService
     private readonly IEmployeeRepository _employeeRepo;
     private readonly IProjectRepository _projectRepo;
     private readonly INotificationService _notification;
+    private readonly ILogger<AllocationService> _logger;
 
     // Serializes operations to avoid concurrent allocations that could bypass capacity checks.
-    private readonly SemaphoreSlim _operationLock = new(1,1);
+    // Static scope also protects callers that resolve more than one service instance in-process.
+    private static readonly SemaphoreSlim OperationLock = new(1, 1);
 
     public AllocationService(
         IAllocationRepository allocationRepo,
         IEmployeeRepository employeeRepo,
         IProjectRepository projectRepo,
-        INotificationService notification)
+        INotificationService notification,
+        ILogger<AllocationService>? logger = null)
     {
         _allocationRepo = allocationRepo ?? throw new ArgumentNullException(nameof(allocationRepo));
         _employeeRepo = employeeRepo ?? throw new ArgumentNullException(nameof(employeeRepo));
         _projectRepo = projectRepo ?? throw new ArgumentNullException(nameof(projectRepo));
         _notification = notification ?? throw new ArgumentNullException(nameof(notification));
+        _logger = logger ?? NullLogger<AllocationService>.Instance;
     }
 
     /// <summary>
@@ -49,7 +55,7 @@ public sealed class AllocationService
         if (allocation.EndDate.HasValue && allocation.EndDate.Value < allocation.StartDate) return Result<Allocation>.Failure("EndDate must be same or after StartDate.");
         if (allocation.AllocationPercentage <= 0m || allocation.AllocationPercentage > 100m) return Result<Allocation>.Failure("AllocationPercentage must be between 1 and 100.");
 
-        await _operationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await OperationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Verify employee exists and is active
@@ -90,14 +96,14 @@ public sealed class AllocationService
             catch (Exception ex)
             {
                 // Do not treat notification failure as rollback. Log to stderr for operators.
-                try { Console.Error.WriteLine($"Notification failed after allocation persisted: {ex.Message}"); } catch { }
+                _logger.LogWarning(ex, "Notification failed after allocation persisted for employee {EmployeeId}", allocation.EmployeeId);
             }
 
             return Result<Allocation>.Success(allocation);
         }
         finally
         {
-            _operationLock.Release();
+            OperationLock.Release();
         }
     }
 
@@ -109,7 +115,7 @@ public sealed class AllocationService
     {
         if (allocationId == Guid.Empty) return Result.Failure("AllocationId is required.");
 
-        await _operationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await OperationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var existing = await _allocationRepo.GetByIdAsync(allocationId, cancellationToken).ConfigureAwait(false);
@@ -134,12 +140,15 @@ public sealed class AllocationService
             }
             catch (Exception ex)
             {
-                try { Console.Error.WriteLine($"Notification failed after release persisted: {ex.Message}"); } catch { }
+                _logger.LogWarning(ex, "Notification failed after releasing allocation {AllocationId}", allocationId);
             }
 
             return Result.Success();
         }
-        finally { _operationLock.Release(); }
+        finally
+        {
+            OperationLock.Release();
+        }
     }
 
     public Task<IReadOnlyList<Allocation>> ListByEmployeeAsync(Guid employeeId, CancellationToken cancellationToken = default)
@@ -153,7 +162,7 @@ public sealed class AllocationService
         if (allocationId == Guid.Empty) return Result<Allocation>.Failure("AllocationId is required.");
         if (update is null) return Result<Allocation>.Failure("Update must be provided.");
 
-        await _operationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await OperationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var existing = await _allocationRepo.GetByIdAsync(allocationId, cancellationToken).ConfigureAwait(false);
@@ -200,12 +209,12 @@ public sealed class AllocationService
             }
             catch (Exception ex)
             {
-                try { Console.Error.WriteLine($"Notification failed after allocation update persisted: {ex.Message}"); } catch { }
+                _logger.LogWarning(ex, "Notification failed after updating allocation {AllocationId}", candidate.Id);
             }
 
             return Result<Allocation>.Success(candidate);
         }
-        finally { _operationLock.Release(); }
+        finally { OperationLock.Release(); }
     }
 
     // Capacity checks are implemented in AllocationValidator to keep availability logic consistent

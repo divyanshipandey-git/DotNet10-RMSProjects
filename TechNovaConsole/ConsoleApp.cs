@@ -240,14 +240,14 @@ public sealed class ConsoleApp
             Console.Write("Employee UniqueId to delete: "); var idS = Console.ReadLine() ?? string.Empty;
             if (!Guid.TryParse(idS, out var gid)) { Console.WriteLine("Invalid GUID"); return; }
             var r = await _employeeService.DeleteAsync(gid, ct);
-            if (r.IsSuccess) Console.WriteLine("Employee deleted."); else PrintErrors(r.Errors);
+            if (r.IsSuccess) Console.WriteLine("Employee deactivated (history preserved)."); else PrintErrors(r.Errors);
         }
     }
 
     private async Task ProjectMenu(CancellationToken ct)
     {
         Console.WriteLine();
-        Console.WriteLine("Project Menu: 1) List 2) Add 0) Back");
+        Console.WriteLine("Project Menu: 1) List 2) Add 3) Update 4) Delete 0) Back");
         Console.Write("Select: ");
         var k = Console.ReadLine();
         if (k == "1")
@@ -282,6 +282,35 @@ public sealed class ConsoleApp
             var p = new Project(name, client, start, end, ProjectStatus.Planned, skillReqs);
             var r = await _projectService.CreateAsync(p, ct);
             if (r.IsSuccess) Console.WriteLine($"Created project {r.Value!.Id}"); else PrintErrors(r.Errors);
+        }
+        else if (k == "3")
+        {
+            Console.Write("Project Id to update: ");
+            if (!Guid.TryParse(Console.ReadLine(), out var id)) { Console.WriteLine("Invalid GUID"); return; }
+            var current = await _projectService.GetByIdAsync(id, ct);
+            if (!current.IsSuccess) { PrintErrors(current.Errors); return; }
+            var p = current.Value!;
+            Console.Write($"Name ({p.Name}): "); var name = Console.ReadLine();
+            Console.Write($"Client ({p.ClientName}): "); var client = Console.ReadLine();
+            Console.WriteLine("Status (Planned, Active, OnHold, Completed, Cancelled) or blank:");
+            var statusInput = Console.ReadLine();
+            ProjectStatus? status = null;
+            if (!string.IsNullOrWhiteSpace(statusInput) && Enum.TryParse<ProjectStatus>(statusInput, true, out var parsedStatus)) status = parsedStatus;
+            else if (!string.IsNullOrWhiteSpace(statusInput)) { Console.WriteLine("Invalid status"); return; }
+            var result = await _projectService.UpdateAsync(id, new ProjectUpdate
+            {
+                Name = string.IsNullOrWhiteSpace(name) ? null : name,
+                ClientName = string.IsNullOrWhiteSpace(client) ? null : client,
+                Status = status
+            }, ct);
+            if (result.IsSuccess) Console.WriteLine("Project updated."); else PrintErrors(result.Errors);
+        }
+        else if (k == "4")
+        {
+            Console.Write("Project Id to delete: ");
+            if (!Guid.TryParse(Console.ReadLine(), out var id)) { Console.WriteLine("Invalid GUID"); return; }
+            var result = await _projectService.DeleteAsync(id, ct);
+            if (result.IsSuccess) Console.WriteLine("Project deleted."); else PrintErrors(result.Errors);
         }
     }
 

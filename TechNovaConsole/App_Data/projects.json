@@ -1,1 +1,56 @@
-[]
+[
+  {
+    "Id": "b2222222-0000-4000-8000-000000000101",
+    "Name": "Customer Portal Modernization",
+    "ClientName": "Northwind Traders",
+    "StartDate": "2026-02-01",
+    "EndDate": "2026-08-31",
+    "Status": "active",
+    "RequiredSkills": [
+      {
+        "SkillId": "C#",
+        "MinimumProficiency": "level3"
+      },
+      {
+        "SkillId": "React",
+        "MinimumProficiency": "level3"
+      }
+    ]
+  },
+  {
+    "Id": "b2222222-0000-4000-8000-000000000102",
+    "Name": "Mobile Banking Application",
+    "ClientName": "Contoso Financial",
+    "StartDate": "2026-03-15",
+    "EndDate": "2026-12-15",
+    "Status": "planned",
+    "RequiredSkills": [
+      {
+        "SkillId": "Java",
+        "MinimumProficiency": "level4"
+      },
+      {
+        "SkillId": "SQL",
+        "MinimumProficiency": "level3"
+      }
+    ]
+  },
+  {
+    "Id": "b2222222-0000-4000-8000-000000000103",
+    "Name": "Cloud Infrastructure Migration",
+    "ClientName": "Fabrik service",
+    "StartDate": "2026-01-15",
+    "EndDate": "2026-06-30",
+    "Status": "active",
+    "RequiredSkills": [
+      {
+        "SkillId": "Cloud",
+        "MinimumProficiency": "level4"
+      },
+      {
+        "SkillId": "DevOps",
+        "MinimumProficiency": "level4"
+      }
+    ]
+  }
+]

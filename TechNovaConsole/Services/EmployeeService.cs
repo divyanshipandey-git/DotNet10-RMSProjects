@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using TechNovaConsole.Interfaces;
 using TechNovaConsole.Models;
 using TechNovaConsole.Utilities;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace TechNovaConsole.Services;
 
@@ -18,6 +20,7 @@ namespace TechNovaConsole.Services;
 public sealed class EmployeeService
 {
     private readonly IEmployeeRepository _repository;
+    private readonly ILogger<EmployeeService> _logger;
 
     // For simple file-based diagnostics we may write small logs; System.IO is used below.
 
@@ -26,37 +29,19 @@ public sealed class EmployeeService
 
     private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
 
-    public EmployeeService(IEmployeeRepository repository)
+    public EmployeeService(IEmployeeRepository repository, ILogger<EmployeeService>? logger = null)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _logger = logger ?? NullLogger<EmployeeService>.Instance;
     }
 
     /// <summary>
-    /// Deletes an employee (hard delete) from the repository.
+    /// Deactivates an employee while preserving the employee identity and allocation history.
+    /// This method remains named DeleteAsync for compatibility with existing callers.
     /// </summary>
     public async Task<Result> DeleteAsync(Guid uniqueId, CancellationToken cancellationToken = default)
     {
-        if (uniqueId == Guid.Empty) return Result.Failure("UniqueId must be provided.");
-
-        try
-        {
-            await _repository.DeleteAsync(uniqueId, cancellationToken).ConfigureAwait(false);
-            return Result.Success();
-        }
-        catch (Exception ex)
-        {
-            try
-            {
-                var dir = Path.Combine(AppContext.BaseDirectory, "App_Data");
-                Directory.CreateDirectory(dir);
-                var logPath = Path.Combine(dir, "employee.delete.error.log");
-                var entry = $"{DateTime.UtcNow:o} - Failed to delete employee {uniqueId}: {ex}\n";
-                File.AppendAllText(logPath, entry);
-            }
-            catch { }
-
-            return Result.Failure($"Failed to delete employee: {ex.Message}");
-        }
+        return await DeactivateAsync(uniqueId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -94,20 +79,7 @@ public sealed class EmployeeService
         }
         catch (Exception ex)
         {
-            // Unexpected infrastructure failure - log and bubble up as failure with message
-            try
-            {
-                var dir = Path.Combine(AppContext.BaseDirectory, "App_Data");
-                Directory.CreateDirectory(dir);
-                var logPath = Path.Combine(dir, "employee.add.error.log");
-                var entry = $"{DateTime.UtcNow:o} - Failed to add employee {employee?.FullName} ({employee?.Email}): {ex}\n";
-                File.AppendAllText(logPath, entry);
-            }
-            catch
-            {
-                // best-effort logging only
-            }
-
+            _logger.LogError(ex, "Failed to add employee {EmployeeName} ({Email})", employee.FullName, employee.Email);
             return Result<Employee>.Failure($"Failed to add employee: {ex.Message}");
         }
     }
